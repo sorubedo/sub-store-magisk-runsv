@@ -2,98 +2,66 @@
 
 [English](README.md) | [中文](README_zh-CN.md)
 
-[Sub-Store](https://github.com/sub-store-org/Sub-Store) for Magisk, KernelSU and APatch, supervised by [runsvdir-magisk](https://github.com/sorubedo/runsvdir-magisk). Follows the service, installer, volume-key menu and per-ABI packaging conventions of openlist-magisk-runsv and sing-box-magisk-runsv.
+Run [Sub-Store](https://github.com/sub-store-org/Sub-Store) as an autostart runsv service on Magisk / KernelSU / APatch.
 
-Ships the official frontend, `sub-store.bundle.js`, Android **Termux `nodejs-lts`**, its shared libraries and CA certificates. Frontend and backend share `127.0.0.1:3001` with `SUB_STORE_BACKEND_MERGE=true`. No http-meta, Termux installation or npm is required on the device.
+Includes the frontend, backend, Node.js LTS and runtime libraries, with frontend and backend merged by default. Only a no-mount package is provided, running as root. No http-meta, Termux installation or npm is required on the phone.
 
 ## Install
 
-Requires Android 7.0 / API 24+, Magisk 20.4+ or compatible KernelSU/APatch module installation support. Only a no-mount package is provided: all programs and libraries live in the service folder and run as root.
+Requires Android 7.0 or later.
 
-1. Install runsvdir-magisk and reboot first.
-2. Flash the ZIP matching your ABI. Most phones use `arm64-v8a`. Once runsvdir-magisk is active, this module can start immediately without another reboot.
-3. Open the module action menu: Volume Down selects, Volume Up executes. Choose “启动并启用” to start and enable the service. Fresh installs carry a `down` marker.
-4. Select “查看前后端访问地址” to see the complete URL. A random backend path is generated during installation and preserved on updates. Alternatively open `http://127.0.0.1:3001` and enter the backend URL in frontend settings.
+1. Install [runsvdir-magisk](https://github.com/sorubedo/runsvdir-magisk) first, then reboot.
+2. Download the ZIP for your device from [Releases](https://github.com/sorubedo/sub-store-magisk-runsv/releases) and flash it. Most phones use `arm64-v8a`; `armeabi-v7a`, `x86_64` and `x86` are also available.
 
-ABIs: `arm64-v8a`, `armeabi-v7a`, `x86_64`, `x86`. Each ZIP contains one ABI. Module ID: `sub-store-runsv`; service name: `sub-store`.
+## Start
 
-## Node runtime and dependencies
-
-Everything lives under `/data/adb/runsvdir/service/sub-store`:
-
-| Path | Content |
-| --- | --- |
-| `runtime/bin/node` | Android/Bionic Node.js LTS |
-| `runtime/lib` | ICU, OpenSSL, SQLite, c-ares, C++, zlib shared libraries |
-| `runtime/share` | CA roots, licenses, package versions/checksums |
-| `app/sub-store.bundle.js` | Official backend including its npm dependencies |
-| `app/frontend` | Official frontend |
-| `app/versions.json` | Module/backend/frontend/Node versions |
-| `data` | Default persistent user data |
-| `conf` | User configuration |
-
-The build resolves Termux package dependencies, checks deb SHA-256 values, and recursively copies the ELF `DT_NEEDED` library closure. Android supplies the system Bionic libraries. Node's RUNPATH is relocated to `$ORIGIN/../lib`, and each bundled library uses `$ORIGIN`. The launcher sets `LD_LIBRARY_PATH` and CA paths only for the service process. Termux, npm and a separate Node module are not required on the phone.
-
-Runtime dependencies remain bundled with Node. Updates stop the service and replace `runtime` and `app` as complete directories, removing obsolete libraries/assets. Failed replacements restore the previous payload and leave the service stopped.
-
-## Configuration and control
-
-Edit `/data/adb/runsvdir/service/sub-store/conf`, then restart. It is privileged shell configuration; every variable is exported to Node. Settings include `SUB_STORE_BACKEND_API_HOST`, `SUB_STORE_BACKEND_API_PORT`, `SUB_STORE_FRONTEND_BACKEND_PATH`, `SUB_STORE_DATA_BASE_PATH` and `WAIT_DECRYPT`. Additional upstream environment variables can be added. Node, library, CA and frontend paths are configured by the run script.
-
-`SUB_STORE_CORS_ALLOWED_ORIGINS="*"` allows local and external frontend origins. To restrict origins, use a comma-separated list such as `http://127.0.0.1:3001,https://sub-store.vercel.app`.
-
-For LAN access, set the host to `0.0.0.0`, retain the random backend path, and use the phone's IP/port/path in the frontend settings on other devices.
+Nothing starts by itself on a fresh install. Tap the module **action** button (Volume Down to move, Volume Up to run) and select “启动并启用” (start + enable). Or use the shell:
 
 ```sh
 SVC=/data/adb/runsvdir/service/sub-store
-SVDIR=/data/adb/runsvdir/service sv-enable sub-store
-SVDIR=/data/adb/runsvdir/service sv-disable sub-store
-sv up "$SVC"
-sv down "$SVC"
-sv restart "$SVC"
-sv status "$SVC"
-tail -f /data/adb/runsvdir/log/sv/sub-store/current
+
+SVDIR=/data/adb/runsvdir/service sv-enable sub-store   # start + autostart
+SVDIR=/data/adb/runsvdir/service sv-disable sub-store  # stop + no autostart
+sv up "$SVC"        # start this time
+sv down "$SVC"      # stop this time
+sv restart "$SVC"  # restart the service
+sv status "$SVC"   # status
+tail -n 10 /data/adb/runsvdir/log/sv/sub-store/current
 ```
 
-The action menu also shows recent logs and component versions. Services are independently registered with runsvdir; use `sv-disable` to stop and disable them, as in the reference modules.
+## Access and configuration
 
-## Update and uninstall
+The frontend defaults to `http://127.0.0.1:3001`. Select “查看前后端访问地址” in the action menu and open the full link, or enter the displayed backend URL in the frontend settings.
 
-On updates, Volume Up refreshes Node, libraries, certificates, frontend and backend while preserving service scripts/configuration. This is the default after 30 seconds or when input is unavailable. Volume Down performs a full script/configuration update, preserving the backend path, user data and autostart marker. Back up customized configuration before a full update.
+Installation generates a random backend path, which is preserved on updates.
 
-Published builds support per-channel, per-ABI manager updates. The menu can switch stable/prerelease; a prerelease update source is generated only when upstream has a prerelease. Local builds omit `updateJson` until published.
-
-Uninstall stops the service and deletes its entire service directory, **including the default data folder**. Export a backup first. Any configured external data directory and logs are retained.
-
-## Build and release
-
-Linux tools: Bash, Python 3.10+, curl, dpkg-deb, patchelf and zip. Tests use host Node 24 LTS. Publishing additionally requires `gh`. Termux packages are checked against their index SHA-256; only the Android ELF dependency closure is included and its RUNPATH is relocated.
+Edit `/data/adb/runsvdir/service/sub-store/conf`:
 
 ```sh
-bash fetch.sh stable          # or auto, prerelease, an exact backend tag
-# FRONTEND_TAG=2.34.1 bash fetch.sh 2.42.5
-bash package.sh               # 4 ZIPs: one per ABI
-bash package.sh arm64-v8a     # one ABI
-python3 -m unittest discover -s tests -v
-DRY_RUN=true bash release-channel.sh stable
+SUB_STORE_BACKEND_MERGE=true
+SUB_STORE_BACKEND_API_HOST="127.0.0.1"
+SUB_STORE_BACKEND_API_PORT=3001
+SUB_STORE_CORS_ALLOWED_ORIGINS="*"
 ```
 
-`out/` contains ZIPs, SHA256SUMS, upstream-versions.env and resolved.json with every package version/checksum. Generated `bin/`, `assets/` and `out/` are ignored by Git.
+Restart the service after editing. For LAN access, set the host to `0.0.0.0` and use the phone's IP and port. To restrict cross-origin requests, replace `*` with a comma-separated list of allowed origins.
 
-## Update identity and version numbers
+## Update
 
-Backend, frontend and Node are checked independently at build time and shipped together. A changed backend/frontend release asset, Node package, runtime dependency checksum, CA bundle or module revision produces a new module release. Unchanged inputs with complete artifacts/metadata are skipped.
+The manager can check for updates, or you can flash a newer package over the installed one. Node, libraries, frontend and backend update together; data and autostart settings are kept. Choose with the volume keys during installation:
 
-`version` looks like `2.42.5-r3.<12-character fingerprint>`: backend version, module revision, and a fingerprint covering all component identities. Frontend-only and Node-only updates retain the backend version and change the fingerprint. `versionCode` counts UTC build seconds since 2020-01-01 and is guaranteed to exceed previously recorded local/released codes, including same-second rebuilds or clock rollback. Managers compare this integer, not the fingerprint's lexical order. Component versions remain individually visible in build-info.prop, app/versions.json, release notes and the action menu. The GitHub tag is `v` plus `version`.
+- Volume Up: update programs only, preserving `run` / `conf` / `log/run`. This is the default after 30 seconds without input.
+- Volume Down: full update, resetting service scripts and configuration while preserving data, the random backend path and autostart settings.
 
-The phone updates the whole module through its manager. It stops and replaces Node/libraries/certificates/frontend/backend together, preserves user data/autostart state, and resumes an already running service. There are no independent device-side component updaters. Backend channel selection keeps Node on LTS and frontend on stable releases.
+An already running service resumes after the update; no phone reboot is needed. The action menu shows component versions and lets you switch between stable and prerelease channels. The prerelease channel is available when upstream provides a prerelease.
 
-Increment `REVISION` in `scripts/upstream.py` for module changes. To rebuild only module scripts using the previously fetched components, run `python3 scripts/upstream.py metadata --resolved out/resolved.json`; it verifies local component identities and refreshes metadata without downloads.
+## Uninstall
 
-GitHub Actions provides manual artifact builds and daily release detection. Releases are validated before publishing; update JSON files are committed afterwards. Missing upstream prereleases are skipped, and all four packages must exist for a release to count as complete. For forks, set `REPO_SLUG`; Actions supplies the current repository automatically. Override `RAW_BASE` for branches other than `main`, and `SUB_STORE_UPDATE_BASE` in device configuration for the action menu.
+Uninstall removes the whole service folder, including the default `data` directory. Back it up first. Data configured outside the service folder is retained.
 
-Tests cover installation/update behavior, data/configuration/path preservation, complete payload replacement/rollback, component update detection and version ordering, all Android ELF dependencies, ZIP layouts, and real merged frontend/backend HTTP requests with API persistence. Host JavaScript tests do not replace Android device compatibility tests.
+## FAQ
 
-## License
-
-Packaging/scripts: [MIT](LICENSE). Sub-Store/frontend retain their upstream licenses, included in the payload. Node and its dependencies include their copyright notices and common licenses under runtime `share/`. Sources: [backend](https://github.com/sub-store-org/Sub-Store), [frontend](https://github.com/sub-store-org/Sub-Store-Front-End), [Termux Node LTS recipe](https://github.com/termux/termux-packages/tree/master/packages/nodejs-lts).
+- **Installer says runsvdir-magisk is missing**: install runsvdir-magisk, reboot, then flash this module.
+- **Service is not running**: view the latest 10 log lines in the action menu, then run `sv status /data/adb/runsvdir/service/sub-store`.
+- **Frontend cannot connect to the backend**: start the service and enter the full backend URL from the action menu, including its random path, in the frontend settings.
+- **Want another data folder**: edit `SUB_STORE_DATA_BASE_PATH` in `conf`, then restart. Set `WAIT_DECRYPT=1` if using shared storage.
