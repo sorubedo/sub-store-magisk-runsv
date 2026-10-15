@@ -1,0 +1,6 @@
+id=sub-store-runsv
+name=Sub-Store (runsv)
+version=1.0.0
+versionCode=1
+author=sorubedo(github)
+description=Sub-Store frontend and backend in merged mode, with Android Node.js LTS. Requires runsvdir-magisk. No http-meta.

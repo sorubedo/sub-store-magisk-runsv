@@ -1,0 +1,39 @@
+name: Build
+on:
+  workflow_dispatch:
+    inputs:
+      channel:
+        description: Sub-Store backend channel or tag
+        required: true
+        default: stable
+        type: string
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install build tools
+        run: sudo apt-get update && sudo apt-get install -y patchelf zip
+      - name: Fetch frontend, backend and Android Node LTS
+        env:
+          CHANNEL: ${{ inputs.channel }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bash fetch.sh "$CHANNEL"
+      - name: Package all ABIs
+        run: bash package.sh
+      - name: Validate artifacts and service behavior
+        run: python3 -m unittest discover -s tests -v
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sub-store-runsv
+          path: |
+            out/*.zip
+            out/SHA256SUMS
+            out/upstream-versions.env
+            out/resolved.json
+          if-no-files-found: error

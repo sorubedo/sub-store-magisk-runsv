@@ -1,0 +1,51 @@
+#!/system/bin/sh
+exec 2>&1
+cd "$(dirname "$0")" || exit 1
+SVC="$(pwd -P)"
+set -a
+# shellcheck disable=SC1091
+. ./conf
+set +a
+
+NODE_BIN="$SVC/runtime/bin/node"
+NODE_LIBDIR="$SVC/runtime/lib"
+CERT_FILE="$SVC/runtime/share/cacert.pem"
+APP_ROOT="$SVC/app"
+
+if [ "$WAIT_DECRYPT" != "0" ] && [ "$(getprop sys.user.0.ce_available)" != "true" ]; then
+    echo "sub-store(runsv): waiting for user storage decryption"
+    sleep 10
+    exit 1
+fi
+
+case "$SUB_STORE_FRONTEND_BACKEND_PATH" in
+    /*) ;;
+    *) echo "sub-store(runsv): SUB_STORE_FRONTEND_BACKEND_PATH must start with /"; sleep 10; exit 1 ;;
+esac
+payload_error() {
+    echo "sub-store(runsv): $*"
+    sleep 10
+    exit 1
+}
+[ -f "$NODE_BIN" ] || payload_error "missing Node binary: $NODE_BIN; reinstall the module"
+[ -x "$NODE_BIN" ] || payload_error "Node binary is not executable: $NODE_BIN; chmod 0755 or reinstall the module"
+[ -r "$APP_ROOT/sub-store.bundle.js" ] || payload_error "missing or unreadable backend: $APP_ROOT/sub-store.bundle.js; reinstall the module"
+[ -r "$APP_ROOT/frontend/index.html" ] || payload_error "missing or unreadable frontend: $APP_ROOT/frontend/index.html; reinstall the module"
+case "$SUB_STORE_DATA_BASE_PATH" in
+    /*) ;;
+    *) SUB_STORE_DATA_BASE_PATH="$SVC/$SUB_STORE_DATA_BASE_PATH" ;;
+esac
+mkdir -p "$SUB_STORE_DATA_BASE_PATH" || exit 1
+cd "$SUB_STORE_DATA_BASE_PATH" || exit 1
+mkdir -p tmp || exit 1
+export TMPDIR="$SUB_STORE_DATA_BASE_PATH/tmp"
+export SUB_STORE_DATA_BASE_PATH
+export SUB_STORE_FRONTEND_PATH="$APP_ROOT/frontend"
+export PATH="${NODE_BIN%/*}:$PATH"
+export LD_LIBRARY_PATH="$NODE_LIBDIR"
+export NODE_EXTRA_CA_CERTS="$CERT_FILE"
+export SSL_CERT_FILE="$CERT_FILE"
+# Termux's compiled-in OpenSSL configuration path points into its app sandbox.
+export OPENSSL_CONF=/dev/null
+
+exec "$NODE_BIN" "$APP_ROOT/sub-store.bundle.js"

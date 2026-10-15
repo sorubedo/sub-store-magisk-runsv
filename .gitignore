@@ -1,0 +1,6 @@
+bin/
+assets/
+out/
+__pycache__/
+*.pyc
+*.zip

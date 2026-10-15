@@ -1,0 +1,4 @@
+#!/system/bin/sh
+LOG_DIR=/data/adb/runsvdir/log/sv/sub-store
+mkdir -p "$LOG_DIR" || exit 1
+exec svlogd -tt "$LOG_DIR"

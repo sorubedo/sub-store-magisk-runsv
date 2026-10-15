@@ -1,0 +1,57 @@
+name: Build and Release
+on:
+  schedule:
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+    inputs:
+      channel:
+        description: Backend release channel
+        type: choice
+        options: [auto, stable, prerelease]
+        default: auto
+      force:
+        description: Rebuild even if every payload input is unchanged
+        type: boolean
+        default: false
+permissions:
+  contents: write
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install build tools
+        run: sudo apt-get update && sudo apt-get install -y patchelf zip
+      - name: Plan changed channels
+        id: plan
+        env:
+          CHANNEL_INPUT: ${{ inputs.channel || 'auto' }}
+          FORCE: ${{ inputs.force || 'false' }}
+          REPO_SLUG: ${{ github.repository }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bash plan-release.sh
+      - name: Build and release
+        if: steps.plan.outputs.channels != ''
+        env:
+          CHANNELS: ${{ steps.plan.outputs.channels }}
+          REPO_SLUG: ${{ github.repository }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          for channel in $CHANNELS; do
+            RESOLVED_FILE="out/resolved-$channel.json" bash release-channel.sh "$channel"
+          done
+      - name: Commit manager update metadata
+        if: steps.plan.outputs.channels != ''
+        run: |
+          if [ -z "$(git status --porcelain update)" ]; then exit 0; fi
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git add update
+          git commit -m 'chore(update): refresh Sub-Store releases'
+          git push origin "HEAD:${GITHUB_REF_NAME}"
