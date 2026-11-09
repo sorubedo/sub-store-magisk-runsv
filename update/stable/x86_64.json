@@ -1,6 +1,6 @@
 {
-  "version": "2.44.5-r3.83bf792fe8f5",
-  "versionCode": 216106222,
-  "zipUrl": "https://github.com/sorubedo/sub-store-magisk-runsv/releases/download/v2.44.5-r3.83bf792fe8f5/sub-store-runsv-2.44.5-r3.83bf792fe8f5-x86_64.zip",
+  "version": "2.44.6-r3.ec4846f99834",
+  "versionCode": 216363638,
+  "zipUrl": "https://github.com/sorubedo/sub-store-magisk-runsv/releases/download/v2.44.6-r3.ec4846f99834/sub-store-runsv-2.44.6-r3.ec4846f99834-x86_64.zip",
   "changelog": "https://raw.githubusercontent.com/sorubedo/sub-store-magisk-runsv/main/update/stable/changelog.md"
 }
