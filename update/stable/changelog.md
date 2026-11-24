@@ -1,7 +1,7 @@
-# Sub-Store 2.44.26-r3.b36c9c936186
+# Sub-Store 2.44.28-r3.8a7ba56b15a3
 
-- Backend: 2.44.26
-- Frontend: 2.34.3
+- Backend: 2.44.28
+- Frontend: 2.34.4
 - Android Node.js LTS: 24.22.3 (Termux nodejs-lts)
 - Channel: stable
 
@@ -16,8 +16,8 @@ Each ZIP contains one ABI: arm64-v8a, armeabi-v7a, x86_64 or x86.
 The release ID covers backend, frontend, Node, dependency checksums and module revision.
 
 ```text
-70bffff659514b0e5174dfb86f25f1d1614fe20c5b6bc67c0d3c08d1422c802f  sub-store-runsv-2.44.26-r3.b36c9c936186-arm64-v8a.zip
-094eb74f7300f6aae5aedbd1fa3a222f7e41a9b9a41fb1bd0188cd2209f62d6e  sub-store-runsv-2.44.26-r3.b36c9c936186-armeabi-v7a.zip
-6ae5f4c0c9bbd878a94d91986aad432b8dde07a26091be7eeb8757ddf9d4c5eb  sub-store-runsv-2.44.26-r3.b36c9c936186-x86_64.zip
-bccbbc24cbf95981ddbc4f8621feadd482f00b03dc6a8737a52963b6554ae603  sub-store-runsv-2.44.26-r3.b36c9c936186-x86.zip
+4052fcb98dd9e565a3b122510d33bba63fd7db9e4c0353573b46e01986a2e341  sub-store-runsv-2.44.28-r3.8a7ba56b15a3-arm64-v8a.zip
+c545c940a9950aef45e26d60f842ac2825e1a2d1d79b387a72591aead2f32908  sub-store-runsv-2.44.28-r3.8a7ba56b15a3-armeabi-v7a.zip
+8997be5cc9192aad4714d1ce928c79ab238db814e2921df7650e1c4336c75a14  sub-store-runsv-2.44.28-r3.8a7ba56b15a3-x86_64.zip
+9118d712a3834c5c554a24593ff771b6eeadb9a1f3d1bb69aca5294e9666817a  sub-store-runsv-2.44.28-r3.8a7ba56b15a3-x86.zip
 ```
